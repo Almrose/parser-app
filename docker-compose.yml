@@ -1,0 +1,75 @@
+version: "3"
+
+volumes:
+  avito_postgres_data: {}
+  avito_postgres_data_backups: {}
+
+services:
+  redis:
+    image: redis:6
+    container_name: avito_parser_redis
+
+  postgres:
+    build:
+      context: .
+      dockerfile: ./compose/postgres/Dockerfile
+    image: avito_parser_postgres
+    container_name: avito_parser_postgres
+    ports:
+      - "6432:5432"
+    volumes:
+      - avito_postgres_data:/var/lib/postgresql/data:Z
+      - avito_postgres_data_backups:/backups:z
+    env_file:
+      - ./.envs/.env
+      - ./.envs/.postgres
+
+  celeryworker:
+    build:
+      context: .
+      dockerfile: ./compose/dockerfile
+    image: avito_parser_celeryworker
+    container_name: avito_parser_celeryworker
+    command: /start-celeryworker
+    volumes:
+      - ./config:/app/config
+      - ./raw:/app/raw
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.env
+      - ./.envs/.postgres
+
+  celerybeat:
+    build:
+      context: .
+      dockerfile: ./compose/dockerfile
+    image: avito_parser_celerybeat
+    container_name: avito_parser_celerybeat
+    command: /start-celerybeat
+    volumes:
+      - ./config:/app/config
+      - ./raw:/app/raw
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./.envs/.env
+      - ./.envs/.postgres
+
+  flower:
+    build:
+      context: .
+      dockerfile: ./compose/dockerfile
+    image: avito_parser_flower
+    container_name: avito_parser_flower
+    command: /start-flower
+    volumes:
+      - ./config:/app/config
+      - ./raw:/app/raw
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./.envs/.env
+      - ./.envs/.postgres

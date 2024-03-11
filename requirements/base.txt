@@ -1,0 +1,7 @@
+celery
+requests
+pymongo
+redis==4.2.2 
+python-dotenv
+flower==1.2.0
+psycopg2-binary
